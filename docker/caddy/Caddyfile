@@ -1,0 +1,14 @@
+{
+    debug
+    local_certs
+}
+
+https://localhost {
+    root * /app/public
+
+    php_server {
+        index index.php
+    }
+
+    file_server
+}

@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: symfony_php
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+
+      DATABASE_URL: "pgsql://symfony:symfony@postgres:5432/symfony?serverVersion=17&charset=utf8"
+      REDIS_URL: "redis://redis:6379"
+
+      # Xdebug
+      XDEBUG_MODE: debug,develop
+      XDEBUG_START_WITH_REQUEST: yes
+      XDEBUG_CLIENT_HOST: host.docker.internal
+      XDEBUG_CLIENT_PORT: 9003
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:17
+    container_name: symfony_postgres
+    environment:
+      POSTGRES_DB: symfony
+      POSTGRES_USER: symfony
+      POSTGRES_PASSWORD: symfony
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8.4
+    container_name: symfony_redis
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
