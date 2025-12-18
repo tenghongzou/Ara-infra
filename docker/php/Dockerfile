@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:8.4
+FROM dunglas/frankenphp
 
 RUN apt-get update && apt-get install -y \
     git \
