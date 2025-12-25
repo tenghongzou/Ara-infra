@@ -48,6 +48,22 @@ services:
     volumes:
       - redisdata:/data
 
+  administration:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    container_name: ara_administration
+    working_dir: /app
+    volumes:
+      - ./administration:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+    depends_on:
+      - php
+
 volumes:
   pgdata:
   redisdata:
