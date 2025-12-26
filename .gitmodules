@@ -4,3 +4,6 @@
 [submodule "administration"]
 	path = administration
 	url = git@github.com:tenghongzou/Ara-administration.git
+[submodule "services/notification"]
+	path = services/notification
+	url = git@github.com:tenghongzou/Ara-notification-service.git
