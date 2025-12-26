@@ -64,6 +64,32 @@ services:
     depends_on:
       - php
 
+  notification:
+    build:
+      context: ./docker/services/notification
+      dockerfile: Dockerfile
+    container_name: ara_notification
+    ports:
+      - "8081:8081"
+    environment:
+      RUST_LOG: info
+      SERVER_HOST: "0.0.0.0"
+      SERVER_PORT: "8081"
+      JWT_SECRET: "${JWT_SECRET:-your-jwt-secret-here}"
+      REDIS_URL: "redis://redis:6379"
+      REDIS_CHANNELS: "notification:user:*,notification:broadcast,notification:channel:*"
+      WEBSOCKET_HEARTBEAT_INTERVAL: "30"
+      WEBSOCKET_CONNECTION_TIMEOUT: "120"
+      WEBSOCKET_CLEANUP_INTERVAL: "60"
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
 volumes:
   pgdata:
   redisdata:
