@@ -22,9 +22,9 @@ services:
       REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration (shared with notification service)
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: ${JWT_ISSUER:-ara-platform}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-ara-services}
+      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Notification service URL for sending notifications
       NOTIFICATION_SERVICE_URL: "http://notification:8081"
@@ -85,9 +85,9 @@ services:
       SERVER_PORT: "8081"
 
       # JWT Configuration (shared with Symfony)
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: ${JWT_ISSUER:-ara-platform}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-ara-services}
+      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Redis
       REDIS_URL: "redis://redis:6379"
