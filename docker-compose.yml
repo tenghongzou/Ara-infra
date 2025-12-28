@@ -66,7 +66,7 @@ services:
 
   notification:
     build:
-      context: ./docker/services/notification
+      context: ./services/notification
       dockerfile: Dockerfile
     container_name: ara_notification
     ports:
