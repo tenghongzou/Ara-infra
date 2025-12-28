@@ -5,6 +5,9 @@
 
 .DEFAULT_GOAL := help
 
+# Docker Compose command (v2: "docker compose", v1: "docker-compose")
+DOCKER_COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
 # ============================================================================
 # Help
 # ============================================================================
@@ -69,7 +72,7 @@ help:
 init: env-check
 	@echo "Initializing Ara Infrastructure..."
 	git submodule update --init --recursive
-	docker-compose up -d --build
+	$(DOCKER_COMPOSE) up -d --build
 	@echo ""
 	@echo "Done! Services are starting..."
 	@echo ""
@@ -95,81 +98,81 @@ env-generate-secret:
 # ============================================================================
 
 up: env-check
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 	@echo "Services started"
 
 down:
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 restart:
-	docker-compose restart
+	$(DOCKER_COMPOSE) restart
 
 restart-php:
-	docker-compose restart php
+	$(DOCKER_COMPOSE) restart php
 
 restart-notification:
-	docker-compose restart notification
+	$(DOCKER_COMPOSE) restart notification
 
 build:
-	docker-compose build
+	$(DOCKER_COMPOSE) build
 
 build-notification:
-	docker-compose build notification
+	$(DOCKER_COMPOSE) build notification
 
 build-no-cache:
-	docker-compose build --no-cache
+	$(DOCKER_COMPOSE) build --no-cache
 
 logs:
-	docker-compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 logs-php:
-	docker-compose logs -f php
+	$(DOCKER_COMPOSE) logs -f php
 
 logs-notification:
-	docker-compose logs -f notification
+	$(DOCKER_COMPOSE) logs -f notification
 
 logs-admin:
-	docker-compose logs -f administration
+	$(DOCKER_COMPOSE) logs -f administration
 
 status:
-	docker-compose ps
+	$(DOCKER_COMPOSE) ps
 
 # ============================================================================
 # Shell Access
 # ============================================================================
 
 php-shell:
-	docker-compose exec php bash
+	$(DOCKER_COMPOSE) exec php bash
 
 node-shell:
-	docker-compose exec administration sh
+	$(DOCKER_COMPOSE) exec administration sh
 
 notification-shell:
-	docker-compose exec notification sh
+	$(DOCKER_COMPOSE) exec notification sh
 
 # ============================================================================
 # Database
 # ============================================================================
 
 psql:
-	docker-compose exec postgres psql -U symfony -d symfony
+	$(DOCKER_COMPOSE) exec postgres psql -U symfony -d symfony
 
 redis-cli:
-	docker-compose exec redis redis-cli
+	$(DOCKER_COMPOSE) exec redis redis-cli
 
 redis-monitor:
 	@echo "Monitoring notification:* channels..."
-	docker-compose exec redis redis-cli PSUBSCRIBE "notification:*"
+	$(DOCKER_COMPOSE) exec redis redis-cli PSUBSCRIBE "notification:*"
 
 db-migrate:
-	docker-compose exec php bin/console doctrine:migrations:migrate --no-interaction
+	$(DOCKER_COMPOSE) exec php bin/console doctrine:migrations:migrate --no-interaction
 
 db-backup:
-	docker-compose exec postgres pg_dump -U symfony symfony > backup.sql
+	$(DOCKER_COMPOSE) exec postgres pg_dump -U symfony symfony > backup.sql
 	@echo "Backed up to backup.sql"
 
 db-restore:
-	docker-compose exec -T postgres psql -U symfony symfony < backup.sql
+	$(DOCKER_COMPOSE) exec -T postgres psql -U symfony symfony < backup.sql
 	@echo "Restored from backup.sql"
 
 # ============================================================================
@@ -186,10 +189,10 @@ test-notification-verbose:
 	cd services/notification && cargo test -- --nocapture
 
 test-backend:
-	docker-compose exec php bin/phpunit
+	$(DOCKER_COMPOSE) exec php bin/phpunit
 
 test-admin:
-	docker-compose exec administration pnpm test:unit
+	$(DOCKER_COMPOSE) exec administration pnpm test:unit
 
 # ============================================================================
 # Notification Service
@@ -216,13 +219,13 @@ notify-test:
 # ============================================================================
 
 clean:
-	docker-compose down --remove-orphans
+	$(DOCKER_COMPOSE) down --remove-orphans
 
 clean-volumes:
-	docker-compose down -v --remove-orphans
+	$(DOCKER_COMPOSE) down -v --remove-orphans
 
 clean-all:
-	docker-compose down -v --rmi all --remove-orphans
+	$(DOCKER_COMPOSE) down -v --rmi all --remove-orphans
 
 clean-notification-build:
 	cd services/notification && cargo clean
@@ -236,5 +239,5 @@ dev: up logs
 rebuild: down build up
 
 rebuild-notification:
-	docker-compose up -d --build notification
-	docker-compose logs -f notification
+	$(DOCKER_COMPOSE) up -d --build notification
+	$(DOCKER_COMPOSE) logs -f notification
