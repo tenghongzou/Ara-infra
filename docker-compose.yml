@@ -15,11 +15,19 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      APP_ENV: dev
-      APP_DEBUG: 1
+      APP_ENV: ${APP_ENV:-dev}
+      APP_DEBUG: ${APP_DEBUG:-1}
 
-      DATABASE_URL: "pgsql://symfony:symfony@postgres:5432/symfony?serverVersion=17&charset=utf8"
+      DATABASE_URL: "pgsql://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${POSTGRES_DB:-symfony}?serverVersion=17&charset=utf8"
       REDIS_URL: "redis://redis:6379"
+
+      # JWT Configuration (shared with notification service)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-ara-platform}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-ara-services}
+
+      # Notification service URL for sending notifications
+      NOTIFICATION_SERVICE_URL: "http://notification:8081"
 
       # Xdebug
       XDEBUG_MODE: debug,develop
@@ -36,9 +44,9 @@ services:
     image: postgres:17
     container_name: symfony_postgres
     environment:
-      POSTGRES_DB: symfony
-      POSTGRES_USER: symfony
-      POSTGRES_PASSWORD: symfony
+      POSTGRES_DB: ${POSTGRES_DB:-symfony}
+      POSTGRES_USER: ${POSTGRES_USER:-symfony}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-symfony}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -72,15 +80,30 @@ services:
     ports:
       - "8081:8081"
     environment:
-      RUST_LOG: info
+      RUST_LOG: ${RUST_LOG:-info}
       SERVER_HOST: "0.0.0.0"
       SERVER_PORT: "8081"
-      JWT_SECRET: "${JWT_SECRET:-your-jwt-secret-here}"
+
+      # JWT Configuration (shared with Symfony)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-ara-platform}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-ara-services}
+
+      # Redis
       REDIS_URL: "redis://redis:6379"
       REDIS_CHANNELS: "notification:user:*,notification:broadcast,notification:channel:*"
+
+      # WebSocket
       WEBSOCKET_HEARTBEAT_INTERVAL: "30"
       WEBSOCKET_CONNECTION_TIMEOUT: "120"
       WEBSOCKET_CLEANUP_INTERVAL: "60"
+
+      # Optional features (from .env)
+      QUEUE_ENABLED: ${QUEUE_ENABLED:-false}
+      ACK_ENABLED: ${ACK_ENABLED:-false}
+      RATELIMIT_ENABLED: ${RATELIMIT_ENABLED:-false}
+      TENANT_ENABLED: ${TENANT_ENABLED:-false}
+      CLUSTER_ENABLED: ${CLUSTER_ENABLED:-false}
     depends_on:
       - redis
     healthcheck:

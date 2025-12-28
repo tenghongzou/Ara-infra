@@ -1,2 +1,10 @@
-
+# Claude Code
 CLAUDE.md
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Keep example file
+!.env.example
