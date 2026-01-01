@@ -3,12 +3,90 @@
     local_certs
 }
 
-https://localhost {
-    root * /app/public
-
-    php_server {
-        index index.php
+:80 {
+    # Notification service WebSocket/SSE
+    handle /ws {
+        reverse_proxy notification:8081
+    }
+    handle /sse {
+        reverse_proxy notification:8081
     }
 
-    file_server
+    # Notification service endpoints (Rust microservice - only send operations)
+    handle /stats {
+        reverse_proxy notification:8081
+    }
+    handle /metrics {
+        reverse_proxy notification:8081
+    }
+    handle /health {
+        reverse_proxy notification:8081
+    }
+    # Notification send endpoints -> Rust service
+    handle /api/v1/notifications/send {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/send-to-users {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/broadcast {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/channel {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/channels {
+        reverse_proxy notification:8081
+    }
+
+    # Symfony PHP backend (default - handles all other routes including notification settings)
+    handle {
+        root * /app/public
+        php_server
+    }
+}
+
+https://ara.local {
+    # Notification service WebSocket/SSE
+    handle /ws {
+        reverse_proxy notification:8081
+    }
+    handle /sse {
+        reverse_proxy notification:8081
+    }
+
+    # Notification service endpoints (Rust microservice - only send operations)
+    handle /stats {
+        reverse_proxy notification:8081
+    }
+    handle /metrics {
+        reverse_proxy notification:8081
+    }
+    handle /health {
+        reverse_proxy notification:8081
+    }
+    # Notification send endpoints -> Rust service
+    handle /api/v1/notifications/send {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/send-to-users {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/broadcast {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/channel {
+        reverse_proxy notification:8081
+    }
+    handle /api/v1/notifications/channels {
+        reverse_proxy notification:8081
+    }
+
+    # Symfony PHP backend (default - handles all other routes including notification settings)
+    handle {
+        root * /app/public
+        php_server
+    }
+
+    tls internal
 }

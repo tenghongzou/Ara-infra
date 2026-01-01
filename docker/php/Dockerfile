@@ -13,8 +13,7 @@ RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
     intl \
-    zip \
-    opcache
+    zip
 
 # Redis
 RUN pecl install redis \
@@ -31,11 +30,26 @@ RUN echo "xdebug.mode=debug,develop" >> /usr/local/etc/php/conf.d/docker-xdebug.
  && echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/docker-xdebug.ini \
  && echo "xdebug.log_level=0" >> /usr/local/etc/php/conf.d/docker-xdebug.ini
 
-# Caddyfile
-COPY docker/caddy/Caddyfile /etc/caddy/Caddyfile
+# 安裝 Composer（官方推薦方式）
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-ENV FRANKENPHP_CONFIG="worker ./public/index.php"
+# 先複製 composer 檔案（利用 Docker cache）
+COPY backend/composer.json backend/composer.lock ./
+
+# 安裝依賴（開發環境）
+RUN composer install \
+    --prefer-dist \
+    --no-interaction \
+    --no-scripts
+
+# 再複製其餘專案檔案
+COPY backend/ .
+
+# Caddyfile
+COPY docker/caddy/Caddyfile /etc/frankenphp/Caddyfile
+
+ENV FRANKENPHP_CONFIG="worker /app/public/index.php"
 
 EXPOSE 80 443
