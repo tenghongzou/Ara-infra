@@ -7,3 +7,6 @@
 [submodule "services/notification"]
 	path = services/notification
 	url = git@github.com:tenghongzou/Ara-notification-service.git
+[submodule "services/chat"]
+	path = services/chat
+	url = git@github.com:tenghongzou/Ara-chat-service.git
