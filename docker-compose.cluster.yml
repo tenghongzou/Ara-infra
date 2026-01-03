@@ -1,0 +1,76 @@
+# Cluster mode configuration for chat service testing
+# Usage: docker compose -f docker-compose.yml -f docker-compose.cluster.yml up -d
+
+services:
+  # Override the default chat service to enable cluster mode
+  chat:
+    environment:
+      RUST_LOG: ${RUST_LOG:-info,ara_chat_service::domain::cluster=debug}
+      CHAT__CLUSTER__ENABLED: "true"
+      CHAT__CLUSTER__SERVER_ID: "chat-node-1"
+
+  # Second chat node
+  chat-node-2:
+    build:
+      context: ./services/chat
+      dockerfile: Dockerfile
+    container_name: ara_chat_node_2
+    ports:
+      - "8083:8082"
+    environment:
+      RUST_LOG: ${RUST_LOG:-info,ara_chat_service::domain::cluster=debug}
+      CHAT__HOST: "0.0.0.0"
+      CHAT__PORT: "8082"
+      CHAT__JWT__SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      CHAT__JWT__ISSUER: "${JWT_ISSUER:-ara-platform}"
+      CHAT__JWT__AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
+      CHAT__REDIS__URL: "redis://redis:6379"
+      CHAT__DATABASE__URL: "postgres://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${POSTGRES_DB:-symfony}"
+      CHAT__WEBSOCKET__MAX_CONNECTIONS: "100000"
+      CHAT__WEBSOCKET__MAX_CONNECTIONS_PER_USER: "5"
+      CHAT__WEBSOCKET__HEARTBEAT_INTERVAL_SECONDS: "30"
+      CHAT__WEBSOCKET__CONNECTION_TIMEOUT_SECONDS: "60"
+      CHAT__CLUSTER__ENABLED: "true"
+      CHAT__CLUSTER__SERVER_ID: "chat-node-2"
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Third chat node
+  chat-node-3:
+    build:
+      context: ./services/chat
+      dockerfile: Dockerfile
+    container_name: ara_chat_node_3
+    ports:
+      - "8084:8082"
+    environment:
+      RUST_LOG: ${RUST_LOG:-info,ara_chat_service::domain::cluster=debug}
+      CHAT__HOST: "0.0.0.0"
+      CHAT__PORT: "8082"
+      CHAT__JWT__SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      CHAT__JWT__ISSUER: "${JWT_ISSUER:-ara-platform}"
+      CHAT__JWT__AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
+      CHAT__REDIS__URL: "redis://redis:6379"
+      CHAT__DATABASE__URL: "postgres://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${POSTGRES_DB:-symfony}"
+      CHAT__WEBSOCKET__MAX_CONNECTIONS: "100000"
+      CHAT__WEBSOCKET__MAX_CONNECTIONS_PER_USER: "5"
+      CHAT__WEBSOCKET__HEARTBEAT_INTERVAL_SECONDS: "30"
+      CHAT__WEBSOCKET__CONNECTION_TIMEOUT_SECONDS: "60"
+      CHAT__CLUSTER__ENABLED: "true"
+      CHAT__CLUSTER__SERVER_ID: "chat-node-3"
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
