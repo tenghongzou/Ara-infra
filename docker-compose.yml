@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   php:
     build:
@@ -28,6 +26,8 @@ services:
 
       # Notification service URL for sending notifications
       NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      # Chat service URL for messaging
+      CHAT_SERVICE_URL: "http://chat:8082"
 
       # Xdebug
       XDEBUG_MODE: debug,develop
@@ -69,8 +69,12 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
+      NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      CHAT_SERVICE_URL: "http://chat:8082"
     depends_on:
       - php
+      - notification
+      - chat
 
   notification:
     build:
