@@ -16,7 +16,7 @@ services:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-1}
 
-      DATABASE_URL: "pgsql://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${POSTGRES_DB:-symfony}?serverVersion=17&charset=utf8"
+      DATABASE_URL: "${DATABASE_URL:-pgsql://symfony:symfony@postgres:5432/symfony?serverVersion=17&charset=utf8}"
       REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration (shared with notification service)
@@ -41,7 +41,9 @@ services:
       - redis
 
   postgres:
-    image: postgres:17
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
     container_name: symfony_postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-symfony}
@@ -49,6 +51,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-symfony}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-symfony} -d ${POSTGRES_DB:-symfony}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:8.4
@@ -158,8 +166,49 @@ services:
       retries: 3
       start_period: 10s
 
+  backup:
+    build:
+      context: ./docker/backup
+      dockerfile: Dockerfile
+    container_name: ara_backup
+    environment:
+      # Backup configuration
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      BACKUP_SCHEDULE: "${BACKUP_SCHEDULE:-0 2 * * *}"
+      BACKUP_ON_START: ${BACKUP_ON_START:-false}
+      TZ: ${TZ:-UTC}
+
+      # PostgreSQL connection
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:-symfony}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-symfony}
+      PGDATABASE: ${POSTGRES_DB:-symfony}
+
+      # Redis connection
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
+      # S3 configuration (optional)
+      S3_ENABLED: ${S3_BACKUP_ENABLED:-false}
+      S3_BUCKET: ${S3_BACKUP_BUCKET:-}
+      S3_PREFIX: ${S3_BACKUP_PREFIX:-backups}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - backupdata:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
+  backupdata:
   caddy_data:
   caddy_config:
