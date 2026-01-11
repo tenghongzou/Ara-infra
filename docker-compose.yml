@@ -171,6 +171,9 @@ services:
       context: ./docker/backup
       dockerfile: Dockerfile
     container_name: ara_backup
+    cap_add:
+      - SETGID
+      - SETUID
     environment:
       # Backup configuration
       BACKUP_DIR: /backups

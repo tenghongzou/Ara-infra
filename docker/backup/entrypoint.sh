@@ -100,5 +100,9 @@ log "Next backup: $(echo "$BACKUP_SCHEDULE" | awk '{print "At "$2":"$1" daily"}'
 log "Logs: /var/log/backup/backup.log"
 log "=========================================="
 
-# Start cron daemon in foreground
-exec crond -f -l 2
+# Start cron daemon in background
+crond -b -l 2
+
+# Keep container running by tailing the log file
+touch /var/log/backup/cron.log
+tail -f /var/log/backup/cron.log

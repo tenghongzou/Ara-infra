@@ -1,7 +1,7 @@
 # Ara Platform - Backup Service
 # Automated backup container with cron scheduling
 
-FROM alpine:3.19
+FROM alpine:3.21
 
 LABEL maintainer="Ara Team"
 LABEL description="Automated backup service for PostgreSQL and Redis"
