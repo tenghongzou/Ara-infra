@@ -15,6 +15,9 @@ help: ## Show this help message
 ## Docker Operations
 up: ## Start all services
 	$(COMPOSE) up -d
+	@echo "Waiting for PHP container to be ready..."
+	@sleep 3
+	$(COMPOSE) exec -T php composer install --prefer-dist --no-interaction --quiet || true
 
 down: ## Stop all services
 	$(COMPOSE) down

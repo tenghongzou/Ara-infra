@@ -50,6 +50,13 @@ COPY backend/ .
 # Caddyfile
 COPY docker/caddy/Caddyfile /etc/frankenphp/Caddyfile
 
+# Entrypoint script for auto composer install
+COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 ENV FRANKENPHP_CONFIG="worker /app/public/index.php"
 
 EXPOSE 80 443
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
