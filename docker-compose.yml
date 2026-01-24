@@ -43,6 +43,50 @@ services:
       - postgres
       - redis
 
+  # Scheduler worker - processes scheduled tasks
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    env_file:
+      - .env
+      - path: .env.local
+        required: false
+    container_name: symfony_scheduler
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      APP_DEBUG: ${APP_DEBUG:-0}
+      REDIS_URL: "redis://redis:6379"
+
+      # JWT Configuration
+      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
+
+      # Service URLs
+      NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      CHAT_SERVICE_URL: "http://chat:8082"
+
+      # Disable Xdebug for worker
+      XDEBUG_MODE: "off"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    # Run the scheduler worker with auto-restart
+    command: ["php", "bin/console", "messenger:consume", "scheduler_main", "--time-limit=3600", "--memory-limit=256M", "-vv"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "bin/console", "debug:scheduler", "--date=now"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   postgres:
     build:
       context: ./docker/postgres

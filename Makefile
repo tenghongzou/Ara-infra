@@ -59,6 +59,9 @@ chat-shell: ## Shell into Chat container
 backup-shell: ## Shell into Backup container
 	$(COMPOSE) exec backup bash
 
+scheduler-shell: ## Shell into Scheduler container
+	$(COMPOSE) exec scheduler bash
+
 ## Database Operations
 psql: ## PostgreSQL CLI
 	$(COMPOSE) exec postgres psql -U symfony -d symfony
@@ -68,6 +71,16 @@ redis-cli: ## Redis CLI
 
 db-migrate: ## Run Symfony migrations
 	$(COMPOSE) exec php bin/console doctrine:migrations:migrate --no-interaction
+
+## Scheduler Operations
+scheduler-status: ## Show registered schedules and next run times
+	$(COMPOSE) exec php bin/console debug:scheduler
+
+scheduler-restart: ## Restart the scheduler worker
+	$(COMPOSE) restart scheduler
+
+scheduler-run: ## Run scheduled tasks immediately (for testing)
+	$(COMPOSE) exec php bin/console messenger:consume scheduler_main --limit=1 -vv
 
 ## Testing
 test-backend: ## Run Symfony tests
@@ -111,14 +124,19 @@ logs-postgres: ## View PostgreSQL logs
 logs-backup: ## View Backup logs
 	$(COMPOSE) logs -f backup
 
+logs-scheduler: ## View Scheduler logs
+	$(COMPOSE) logs -f scheduler
+
 ## Health Checks
 health: ## Check health of all services
 	@echo "Checking service health..."
 	@echo "PHP Backend:"
-	@curl -s http://localhost/api/health || echo "  ❌ Not responding"
+	@curl -s http://localhost/api/health || echo "  [X] Not responding"
 	@echo "\nAdministration:"
-	@curl -s http://localhost:3000 > /dev/null && echo "  ✅ Running" || echo "  ❌ Not responding"
+	@curl -s http://localhost:3000 > /dev/null && echo "  [OK] Running" || echo "  [X] Not responding"
 	@echo "\nNotification:"
-	@curl -s http://localhost:8081/health || echo "  ❌ Not responding"
+	@curl -s http://localhost:8081/health || echo "  [X] Not responding"
 	@echo "\nChat:"
-	@curl -s http://localhost:8082/health || echo "  ❌ Not responding"
+	@curl -s http://localhost:8082/health || echo "  [X] Not responding"
+	@echo "\nScheduler:"
+	@$(COMPOSE) exec -T scheduler php bin/console debug:scheduler --date=now > /dev/null 2>&1 && echo "  [OK] Running" || echo "  [X] Not responding"
