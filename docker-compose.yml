@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    env_file:
+      - .env
+      - path: .env.local
+        required: false
     container_name: symfony_php
     working_dir: /app
     volumes:
@@ -15,8 +19,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-1}
-
-      DATABASE_URL: "${DATABASE_URL:-pgsql://symfony:symfony@postgres:5432/symfony?serverVersion=17&charset=utf8}"
+      # DATABASE_URL is loaded from env_file (.env → .env.local)
       REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration (shared with notification service)
@@ -49,6 +52,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-symfony}
       POSTGRES_USER: ${POSTGRES_USER:-symfony}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-symfony}
+      # Additional database for Chat service (created by init script)
+      CHAT_POSTGRES_DB: ${CHAT_POSTGRES_DB:-ara_chat}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -145,8 +150,9 @@ services:
       # Redis
       CHAT__REDIS__URL: "redis://redis:6379"
 
-      # Database
-      CHAT__DATABASE__URL: "postgres://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${POSTGRES_DB:-symfony}"
+      # Database (uses separate database for isolation)
+      CHAT__DATABASE__URL: "postgres://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${CHAT_POSTGRES_DB:-ara_chat}"
+      CHAT__DATABASE__RUN_MIGRATIONS: "true"
 
       # WebSocket
       CHAT__WEBSOCKET__MAX_CONNECTIONS: "100000"
@@ -182,12 +188,15 @@ services:
       BACKUP_ON_START: ${BACKUP_ON_START:-false}
       TZ: ${TZ:-UTC}
 
-      # PostgreSQL connection
+      # PostgreSQL connection (primary database)
       PGHOST: postgres
       PGPORT: "5432"
       PGUSER: ${POSTGRES_USER:-symfony}
       PGPASSWORD: ${POSTGRES_PASSWORD:-symfony}
       PGDATABASE: ${POSTGRES_DB:-symfony}
+
+      # Additional databases to backup (comma-separated)
+      BACKUP_ADDITIONAL_DBS: ${CHAT_POSTGRES_DB:-ara_chat}
 
       # Redis connection
       REDIS_HOST: redis

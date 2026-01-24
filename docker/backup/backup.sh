@@ -18,6 +18,9 @@ PGUSER="${PGUSER:-symfony}"
 PGPASSWORD="${PGPASSWORD:-symfony}"
 PGDATABASE="${PGDATABASE:-symfony}"
 
+# Additional databases to backup (comma-separated)
+BACKUP_ADDITIONAL_DBS="${BACKUP_ADDITIONAL_DBS:-}"
+
 # Redis configuration
 REDIS_HOST="${REDIS_HOST:-redis}"
 REDIS_PORT="${REDIS_PORT:-6379}"
@@ -44,43 +47,68 @@ init_backup_dir() {
     echo "$backup_path"
 }
 
-# PostgreSQL backup
-backup_postgres() {
+# PostgreSQL backup for a single database
+backup_postgres_db() {
     local backup_path="$1"
-    local backup_file="$backup_path/postgres/db_${TIMESTAMP}.sql.gz"
+    local db_name="$2"
+    local backup_file="$backup_path/postgres/${db_name}_${TIMESTAMP}.dump"
 
-    log "Starting PostgreSQL backup..."
+    log "Starting PostgreSQL backup for database: $db_name..."
 
     export PGPASSWORD="$PGPASSWORD"
 
     # Full database backup with compression
-    if pg_dump -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" \
+    if pg_dump -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" \
         --format=custom \
         --compress=9 \
-        --file="${backup_file%.sql.gz}.dump" \
+        --file="$backup_file" \
         --verbose 2>&1 | while read line; do log "  pg_dump: $line"; done; then
 
-        log "PostgreSQL backup completed: ${backup_file%.sql.gz}.dump"
+        log "PostgreSQL backup completed: $backup_file"
 
         # Calculate and log backup size
-        local size=$(du -h "${backup_file%.sql.gz}.dump" | cut -f1)
+        local size=$(du -h "$backup_file" | cut -f1)
         log "Backup size: $size"
 
         # Create checksum
-        sha256sum "${backup_file%.sql.gz}.dump" > "${backup_file%.sql.gz}.dump.sha256"
-        log "Checksum created: ${backup_file%.sql.gz}.dump.sha256"
+        sha256sum "$backup_file" > "$backup_file.sha256"
+        log "Checksum created: $backup_file.sha256"
 
         # Upload to S3 if enabled
         if [ "$S3_ENABLED" = "true" ] && [ -n "$S3_BUCKET" ]; then
-            upload_to_s3 "${backup_file%.sql.gz}.dump" "postgres"
-            upload_to_s3 "${backup_file%.sql.gz}.dump.sha256" "postgres"
+            upload_to_s3 "$backup_file" "postgres"
+            upload_to_s3 "$backup_file.sha256" "postgres"
         fi
 
         return 0
     else
-        log_error "PostgreSQL backup failed!"
+        log_error "PostgreSQL backup failed for database: $db_name!"
         return 1
     fi
+}
+
+# PostgreSQL backup (all configured databases)
+backup_postgres() {
+    local backup_path="$1"
+    local exit_code=0
+
+    log "Starting PostgreSQL backup..."
+
+    # Backup primary database
+    backup_postgres_db "$backup_path" "$PGDATABASE" || exit_code=1
+
+    # Backup additional databases if configured
+    if [ -n "$BACKUP_ADDITIONAL_DBS" ]; then
+        IFS=',' read -ra DBS <<< "$BACKUP_ADDITIONAL_DBS"
+        for db in "${DBS[@]}"; do
+            db=$(echo "$db" | xargs)  # trim whitespace
+            if [ -n "$db" ]; then
+                backup_postgres_db "$backup_path" "$db" || exit_code=1
+            fi
+        done
+    fi
+
+    return $exit_code
 }
 
 # PostgreSQL partition-aware backup (for large deployments)
