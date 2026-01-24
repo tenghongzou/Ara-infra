@@ -200,7 +200,7 @@ run_test "Batch Notifications" "$body" "$http_code" || true
 
 # 8. Get stats
 print_test "Get Statistics"
-response=$(curl -s -w "\n%{http_code}" "$NOTIFICATION_HOST/api/v1/stats" \
+response=$(curl -s -w "\n%{http_code}" "$NOTIFICATION_HOST/stats" \
     -H "X-API-Key: $API_KEY" 2>/dev/null)
 http_code=$(echo "$response" | tail -n1)
 body=$(echo "$response" | sed '$d')
