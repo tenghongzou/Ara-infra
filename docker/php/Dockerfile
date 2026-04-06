@@ -13,7 +13,8 @@ RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
     intl \
-    zip
+    zip \
+    bcmath
 
 # Redis
 RUN pecl install redis \
