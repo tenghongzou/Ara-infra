@@ -20,7 +20,6 @@ services:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-1}
       # DATABASE_URL is loaded from env_file (.env → .env.local)
-      REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration (shared with notification service)
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
@@ -60,7 +59,6 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-0}
-      REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
@@ -73,11 +71,6 @@ services:
 
       # Disable Xdebug for worker
       XDEBUG_MODE: "off"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
     # Run the scheduler worker with auto-restart
     command: ["php", "bin/console", "messenger:consume", "scheduler_main", "--time-limit=3600", "--memory-limit=256M", "-vv"]
     restart: unless-stopped
@@ -104,7 +97,6 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-0}
-      REDIS_URL: "redis://redis:6379"
 
       # JWT Configuration
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
@@ -185,9 +177,11 @@ services:
       JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
+      JWT_ALGORITHM: "RS256"
+      JWT_PUBLICKEY: "/app/config/jwt/public.pem"
 
       # Redis
-      REDIS_URL: "redis://redis:6379"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
       REDIS_CHANNELS: "notification:user:*,notification:broadcast,notification:channel:*"
 
       # WebSocket
@@ -201,6 +195,8 @@ services:
       RATELIMIT_ENABLED: ${RATELIMIT_ENABLED:-false}
       TENANT_ENABLED: ${TENANT_ENABLED:-false}
       CLUSTER_ENABLED: ${CLUSTER_ENABLED:-false}
+    volumes:
+      - ./backend/config/jwt/public.pem:/app/config/jwt/public.pem:ro
     depends_on:
       - redis
     healthcheck:
@@ -228,7 +224,7 @@ services:
       CHAT__JWT__AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Redis
-      CHAT__REDIS__URL: "redis://redis:6379"
+      CHAT__REDIS__URL: "${REDIS_URL:-redis://redis:6379}"
 
       # Database (uses separate database for isolation)
       CHAT__DATABASE__URL: "postgres://${POSTGRES_USER:-symfony}:${POSTGRES_PASSWORD:-symfony}@postgres:5432/${CHAT_POSTGRES_DB:-ara_chat}"
