@@ -39,6 +39,13 @@
         reverse_proxy notification:8081
     }
 
+    # Chat service (Rust microservice) - strips the /chat prefix so
+    # /chat/ws -> chat:8082/ws and /chat/api/v1/... -> chat:8082/api/v1/...
+    # (a distinct prefix avoids the /ws and /api/v1/* collisions above).
+    handle_path /chat/* {
+        reverse_proxy chat:8082
+    }
+
     # Symfony PHP backend (default - handles all other routes including notification settings)
     handle {
         root * /app/public
@@ -80,6 +87,13 @@ https://ara.local {
     }
     handle /api/v1/notifications/channels {
         reverse_proxy notification:8081
+    }
+
+    # Chat service (Rust microservice) - strips the /chat prefix so
+    # /chat/ws -> chat:8082/ws and /chat/api/v1/... -> chat:8082/api/v1/...
+    # (a distinct prefix avoids the /ws and /api/v1/* collisions above).
+    handle_path /chat/* {
+        reverse_proxy chat:8082
     }
 
     # Symfony PHP backend (default - handles all other routes including notification settings)
