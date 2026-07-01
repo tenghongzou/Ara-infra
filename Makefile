@@ -91,8 +91,10 @@ scheduler-run: ## Run scheduled tasks immediately (for testing)
 	$(COMPOSE) exec php bin/console messenger:consume scheduler_main --limit=1 -vv
 
 ## Testing
-test-backend: ## Run Symfony tests
-	$(COMPOSE) exec php bin/phpunit
+test-backend: ## Run Symfony tests (prepares the _test database first)
+	$(COMPOSE) exec -T -e APP_ENV=test php bin/console doctrine:database:create --env=test --if-not-exists -q || true
+	$(COMPOSE) exec -T -e APP_ENV=test php bin/console doctrine:migrations:migrate --env=test -n -q
+	$(COMPOSE) exec -T -e APP_ENV=test php bin/phpunit
 
 test-admin: ## Run SvelteKit tests
 	$(COMPOSE) exec administration pnpm test:unit
