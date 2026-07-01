@@ -1,0 +1,10 @@
+# Never copy host-built dependency/build artifacts into images.
+# The host's administration/node_modules (created by a local pnpm install) has a
+# .modules.yaml pointing at host store paths; copying it in makes pnpm try to
+# purge & reinstall at container start, which fails with no TTY.
+**/.git
+administration/node_modules
+administration/build
+administration/.svelte-kit
+administration/.vercel
+administration/.netlify

@@ -1,8 +1,11 @@
 # Ara Infrastructure - Makefile
 # Docker Compose helper commands
 
-# Use Docker Compose V2
-COMPOSE = docker compose
+# Auto-detect Docker Compose version:
+#   - V2 (plugin):     "docker compose"
+#   - V1 (standalone): "docker-compose"
+# Prefers V2; falls back to V1 if the plugin is not available.
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
 .PHONY: help up down build logs status restart clean ps shell-php shell-node shell-notification
 

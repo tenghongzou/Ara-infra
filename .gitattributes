@@ -1,0 +1,12 @@
+# Files executed inside Linux containers must use LF line endings,
+# even when the repo is checked out on Windows. CRLF in a shell script's
+# shebang makes the kernel look for an interpreter named "bash\r", which
+# fails with "cannot execute: required file not found".
+*.sh        text eol=lf
+*.bash      text eol=lf
+Dockerfile  text eol=lf
+entrypoint  text eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
