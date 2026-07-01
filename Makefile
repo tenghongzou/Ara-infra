@@ -15,6 +15,11 @@ help: ## Show this help message
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
+## Secrets
+gen-secret: ## Generate a strong random secret (for JWT_SECRET etc.)
+	@openssl rand -base64 48 2>/dev/null | tr -d '\n' && echo "" || \
+		head -c 48 /dev/urandom | base64 | tr -d '\n' && echo ""
+
 ## Docker Operations
 up: ## Start all services
 	$(COMPOSE) up -d

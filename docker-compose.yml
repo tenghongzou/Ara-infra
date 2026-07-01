@@ -22,7 +22,7 @@ services:
       # DATABASE_URL is loaded from env_file (.env → .env.local)
 
       # JWT Configuration (shared with notification service)
-      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
@@ -61,7 +61,7 @@ services:
       APP_DEBUG: ${APP_DEBUG:-0}
 
       # JWT Configuration
-      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
@@ -99,7 +99,7 @@ services:
       APP_DEBUG: ${APP_DEBUG:-0}
 
       # JWT Configuration
-      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
@@ -182,7 +182,7 @@ services:
       SERVER_PORT: "8081"
 
       # JWT Configuration (shared with Symfony)
-      JWT_SECRET: "${JWT_SECRET:-change-this-secret-in-production-min-32-chars}"
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
       JWT_ALGORITHM: "RS256"
