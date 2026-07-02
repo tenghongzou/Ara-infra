@@ -7,7 +7,7 @@
 # Prefers V2; falls back to V1 if the plugin is not available.
 COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-.PHONY: help up down build logs status restart clean ps shell-php shell-node shell-notification
+.PHONY: help init up down build logs status restart clean ps shell-php shell-node shell-notification gen-secret gen-jwt-keys
 
 ## Help
 help: ## Show this help message
@@ -20,7 +20,19 @@ gen-secret: ## Generate a strong random secret (for JWT_SECRET etc.)
 	@openssl rand -base64 48 2>/dev/null | tr -d '\n' && echo "" || \
 		head -c 48 /dev/urandom | base64 | tr -d '\n' && echo ""
 
+gen-jwt-keys: ## Generate the RS256 JWT keypair in backend/config/jwt (required before first start)
+	$(COMPOSE) run --rm --no-deps php bin/console lexik:jwt:generate-keypair --skip-if-exists
+
 ## Docker Operations
+init: ## First-time setup: submodules, .env, JWT keys, build and start
+	git submodule update --init --recursive
+	@test -f .env || (cp .env.example .env && echo "Created .env from .env.example")
+	@! grep -qE '^JWT_SECRET=(change-this|$$)' .env || \
+		(echo "ERROR: set a real JWT_SECRET in .env first — run 'make gen-secret'" && exit 1)
+	$(COMPOSE) build
+	$(MAKE) gen-jwt-keys
+	$(MAKE) up
+
 up: ## Start all services
 	$(COMPOSE) up -d
 	@echo "Waiting for PHP container to be ready..."

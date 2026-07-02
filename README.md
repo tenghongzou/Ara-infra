@@ -89,14 +89,41 @@ POSTGRES_DB=symfony
 
 生成安全密鑰：
 ```bash
-# Linux/Mac
+# 使用 Makefile (推薦)
+make gen-secret
+
+# 或 Linux/Mac
 openssl rand -base64 32
 
 # 或使用 Python
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-### 4. 啟動服務
+### 4. 生成 JWT 金鑰 (RS256)
+
+後端使用 RS256 非對稱簽章發行 JWT：私鑰只存在於 Symfony 後端，
+notification 與 chat 服務以唯讀方式掛載 `backend/config/jwt/public.pem`
+來驗證 token。**金鑰不進版控，首次啟動前必須先生成**，否則：
+
+- notification / chat 容器會啟動失敗
+- Docker 會在缺失的掛載路徑上自動建立一個 `public.pem` **目錄**，
+  之後生成金鑰也會失敗（需先手動刪除該目錄）
+
+```bash
+# 使用 Makefile (推薦，冪等：已存在則跳過)
+make gen-jwt-keys
+
+# 或手動執行
+docker compose run --rm --no-deps php bin/console lexik:jwt:generate-keypair --skip-if-exists
+```
+
+金鑰會生成在 `backend/config/jwt/{private,public}.pem`，
+路徑與加密密語由 `backend/.env` 的 `JWT_SECRET_KEY` / `JWT_PUBLIC_KEY` /
+`JWT_PASSPHRASE` 控制（正式環境請覆寫預設密語）。
+
+> 💡 以上步驟 (2)–(4) 加上建構啟動可用一鍵完成：`make init`
+
+### 5. 啟動服務
 
 ```bash
 # 建構並啟動所有服務
@@ -109,7 +136,7 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-### 5. 驗證服務
+### 6. 驗證服務
 
 ```bash
 # 檢查各服務健康狀態
@@ -442,8 +469,10 @@ docker-compose logs notification
 
 # 常見問題：
 # 1. JWT_SECRET 未設定 → 編輯 .env 設定 JWT_SECRET
-# 2. 端口衝突 → 修改 docker-compose.yml 中的端口映射
-# 3. 建構失敗 → docker-compose build --no-cache notification
+# 2. JWT 金鑰缺失 → notification/chat 啟動失敗，執行 make gen-jwt-keys
+#    (若 backend/config/jwt/public.pem 已被 Docker 建成「目錄」，先刪除它再生成)
+# 3. 端口衝突 → 修改 docker-compose.yml 中的端口映射
+# 4. 建構失敗 → docker-compose build --no-cache notification
 ```
 
 ### WebSocket 連線失敗
