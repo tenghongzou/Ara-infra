@@ -37,11 +37,18 @@ Ara 平台的 Docker 基礎設施，整合後端 API、管理面板與即時通�
 
 | 服務 | 技術棧 | 端口 | 說明 |
 |------|--------|------|------|
-| **php** | Symfony 8 + FrankenPHP | 80, 443 | 後端 REST API |
+| **php** | Symfony 8 + FrankenPHP | 80, 443 | 後端 REST API（Caddy 亦在此路由各服務） |
 | **administration** | SvelteKit 2 + Svelte 5 | 3000 | 管理後台 |
-| **notification** | Rust + Axum + Tokio | 8081 | 即時通知服務 |
-| **postgres** | PostgreSQL 17 | 5432 | 主資料庫 |
-| **redis** | Redis 8.4 | 6379 | 快取與訊息佇列 |
+| **notification** | Rust + Axum + Tokio | 8081 | 即時通知服務（WebSocket/SSE） |
+| **chat** | Rust + Axum + Tokio | 8082 | 即時聊天服務（WebSocket + REST，獨立 `ara_chat` 資料庫） |
+| **scheduler** | PHP (Messenger) | — | 排程任務 worker（訂閱續約等） |
+| **async-worker** | PHP (Messenger) | — | 非同步背景任務 worker（Redis 佇列） |
+| **postgres** | PostgreSQL 17 + pg_partman | 5432 | 資料庫（`symfony` + `ara_chat`） |
+| **redis** | Redis 8.4 | 6379 | 快取、訊息佇列與 Pub/Sub |
+| **backup** | Alpine + cron | — | 每日自動備份（可選 S3 上傳） |
+
+詳細維運說明（功能開關、金鑰輪替、監控、叢集）見
+[docs/operations.md](docs/operations.md)。
 
 ## 快速開始
 
@@ -175,6 +182,18 @@ curl http://localhost:8081/stats
 | GET | `http://localhost:8081/health` | 健康檢查 |
 | GET | `http://localhost:8081/stats` | 連線統計 |
 | GET | `http://localhost:8081/metrics` | Prometheus 指標 |
+
+### 聊天服務
+
+經 Caddy 以 `/chat/*` 前綴轉發（前綴會被剝除）：
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| WS | `ws://localhost/chat/ws?token=JWT` | 聊天 WebSocket |
+| GET/POST | `http://localhost/chat/api/v1/conversations` | 會話列表 / 建立會話 |
+| GET/POST | `http://localhost/chat/api/v1/conversations/{id}/messages` | 讀取 / 發送訊息 |
+| GET | `http://localhost:8082/health` | 健康檢查（直連） |
+| GET | `http://localhost:8082/metrics` | Prometheus 指標（直連） |
 
 ## 開發指南
 
@@ -510,18 +529,21 @@ Ara-infra/
 ├── backend/                 # Symfony 後端 (子模組)
 ├── administration/          # SvelteKit 管理面板 (子模組)
 ├── services/
-│   └── notification/        # Rust 通知服務
-│       ├── src/
-│       ├── tests/
-│       ├── docs/
-│       ├── Cargo.toml
-│       └── Dockerfile
+│   ├── notification/        # Rust 通知服務 (子模組)
+│   └── chat/                # Rust 聊天服務 (子模組)
 ├── docker/
-│   ├── php/
-│   │   └── Dockerfile
-│   └── node/
-│       └── Dockerfile
+│   ├── php/                 # FrankenPHP 映像 + entrypoint
+│   ├── node/                # 管理面板開發映像
+│   ├── caddy/               # Caddyfile (路由設定)
+│   ├── postgres/            # PostgreSQL + pg_partman + 初始化腳本
+│   └── backup/              # 備份服務映像與腳本
+├── docs/
+│   ├── operations.md        # 維運指南（功能開關、金鑰輪替、監控）
+│   └── redis-channels.md    # Redis Pub/Sub 頻道契約
+├── scripts/                 # 測試輔助腳本
 ├── docker-compose.yml
+├── docker-compose.cluster.yml  # 聊天叢集測試拓撲
+├── Makefile
 ├── .env.example
 ├── .env                     # 本地配置 (不提交)
 └── README.md
