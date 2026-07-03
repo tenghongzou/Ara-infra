@@ -95,6 +95,7 @@ REDIS_CHANNELS=notification:user:*,notification:broadcast,notification:channel:*
 | `chat.reaction` | chat service | 自己的訊息收到表情回應（僅 add，不含 remove） |
 | `notification.info/success/warning/error` | 後端（經 HTTP） | 一般通知 |
 | `security.alert`、`system.notification`、`subscription.reminder` | 後端（經 HTTP） | 對應後端 Notification TYPE_* |
+| `permissions.changed` | 後端（經 HTTP） | 權限快取失效訊號：前端收到後靜默重抓權限，**不顯示為通知**（角色權限編輯、使用者角色變更時發出） |
 
 聊天事件的 `event.payload` 形狀見
 `services/chat/src/domain/notification/types.rs` 的 `NotificationPayload`
