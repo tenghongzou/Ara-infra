@@ -262,7 +262,12 @@ class NotificationService
 }
 ```
 
-#### 方法二：Redis Pub/Sub (推薦)
+#### 方法二：Redis Pub/Sub
+
+> ⚠️ **注意**：目前後端實際採用方法一（HTTP，已內建
+> `NotificationClient`）；以下 Predis 範例僅為示意。頻道名稱與 payload
+> 形狀是嚴格契約——不匹配的訊息會被訂閱端**靜默丟棄**。發布前請務必
+> 閱讀 [Redis Pub/Sub 頻道契約](docs/redis-channels.md)。
 
 ```php
 // src/Service/NotificationService.php
