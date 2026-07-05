@@ -33,9 +33,11 @@ chown backup:backup "$BACKUP_DIR"
 # Export environment variables for cron
 printenv | grep -E '^(BACKUP_|PG|REDIS_|S3_|AWS_|TZ)' > /etc/environment
 
-# Create cron job
+# Create cron job. busybox crond only honours root's crontab, so the
+# jobs live in /etc/crontabs/root (rewritten on every start — idempotent
+# across container restarts).
 log "Setting up cron schedule: $BACKUP_SCHEDULE"
-CRON_FILE=/etc/crontabs/backup
+CRON_FILE=/etc/crontabs/root
 
 cat > "$CRON_FILE" << EOF
 # Ara Platform Backup Schedule
@@ -48,7 +50,6 @@ EOF
 
 # Set proper permissions for cron file
 chmod 600 "$CRON_FILE"
-chown backup:backup "$CRON_FILE"
 
 # Create log file
 touch /var/log/backup/backup.log
@@ -100,9 +101,6 @@ log "Next backup: $(echo "$BACKUP_SCHEDULE" | awk '{print "At "$2":"$1" daily"}'
 log "Logs: /var/log/backup/backup.log"
 log "=========================================="
 
-# Start cron daemon in background
-crond -b -l 2
-
-# Keep container running by tailing the log file
-touch /var/log/backup/cron.log
-tail -f /var/log/backup/cron.log
+# Run cron in the foreground as the container's main process so its
+# exit/crash surfaces as a container failure instead of a zombie tail.
+exec crond -f -l 2

@@ -112,5 +112,28 @@ docker compose -f docker-compose.yml -f docker-compose.cluster.yml up -d
 | 看備份日誌 | `make backup-logs` |
 
 排程與保留天數由 `.env` 的 `BACKUP_SCHEDULE`、`BACKUP_RETENTION_DAYS`
-控制；S3 上傳選項見 `.env.example`。備份涵蓋 `symfony` + `ara_chat`
-兩個資料庫與 Redis snapshot。
+控制。備份涵蓋 `symfony` + `ara_chat` 兩個資料庫與 Redis snapshot。
+排程由 busybox crond 執行（任務寫在 root 的 crontab，容器每次啟動時
+重建）；確認排程存活：`docker compose exec backup cat /etc/crontabs/root`。
+
+### 啟用 S3 上傳
+
+AWS 憑證**不放環境變數**（`docker inspect` 可見）。兩種方式擇一：
+
+1. **IAM role**（在 AWS 上跑時的首選）：主機掛 instance role，
+   aws-cli 自動取得憑證，什麼都不用設。
+2. **Docker secret**（其他環境）：建立 `secrets/aws-credentials`
+   （已在 .gitignore），內容為標準 AWS credentials 格式，然後用
+   疊加檔啟動：
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d backup
+   ```
+
+之後在 `.env` 設 `S3_BACKUP_ENABLED=true` 與 `S3_BACKUP_BUCKET`。
+
+## 服務埠曝露原則
+
+notification（8081）與 chat（8082）只綁 `127.0.0.1`——本機開發仍可
+直連 `localhost:808x`，但外部流量一律經 Caddy（80/443）的路由進入
+（`/ws`、`/sse`、`/chat/*`）。如果正式環境的前端設定了直連
+`:8081`/`:8082` 的 URL，改為走 Caddy 路徑即可。

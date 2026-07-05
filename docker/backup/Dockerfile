@@ -6,7 +6,9 @@ FROM alpine:3.21
 LABEL maintainer="Ara Team"
 LABEL description="Automated backup service for PostgreSQL and Redis"
 
-# Install required packages
+# Install required packages. Cron is busybox crond (symlinked so the
+# process name stays "crond" for the healthcheck) — the dcron package
+# never executed the scheduled jobs despite a running daemon.
 RUN apk add --no-cache \
     bash \
     postgresql17-client \
@@ -14,8 +16,8 @@ RUN apk add --no-cache \
     aws-cli \
     curl \
     tzdata \
-    dcron \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/* \
+    && ln -sf /bin/busybox /usr/sbin/crond
 
 # Create backup user
 RUN addgroup -g 1000 backup && \

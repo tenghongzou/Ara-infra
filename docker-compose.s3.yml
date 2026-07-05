@@ -1,0 +1,25 @@
+# S3 backup credentials via a file-based Docker secret — keeps AWS keys
+# out of container environment variables (docker inspect, error reports).
+#
+# Usage:
+#   1. mkdir -p secrets && create secrets/aws-credentials (gitignored):
+#        [default]
+#        aws_access_key_id = AKIA...
+#        aws_secret_access_key = ...
+#   2. Set S3_BACKUP_ENABLED=true and S3_BACKUP_BUCKET in .env
+#   3. docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d backup
+#
+# On AWS-hosted machines prefer an IAM instance role instead — then
+# neither this overlay nor any credential file is needed.
+
+services:
+  backup:
+    environment:
+      # aws-cli reads credentials from this file; nothing lands in `env`
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws-credentials
+    secrets:
+      - aws-credentials
+
+secrets:
+  aws-credentials:
+    file: ./secrets/aws-credentials

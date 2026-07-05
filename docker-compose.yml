@@ -194,7 +194,9 @@ services:
       dockerfile: Dockerfile
     container_name: ara_notification
     ports:
-      - "8081:8081"
+      # Loopback-only: external traffic reaches this service through
+      # Caddy (/ws, /sse, /api/v1/notifications/*), never directly.
+      - "127.0.0.1:8081:8081"
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       SERVER_HOST: "0.0.0.0"
@@ -240,7 +242,9 @@ services:
       dockerfile: Dockerfile
     container_name: ara_chat
     ports:
-      - "8082:8082"
+      # Loopback-only: external traffic reaches this service through
+      # Caddy (/chat/*), never directly.
+      - "127.0.0.1:8082:8082"
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       CHAT__HOST: "0.0.0.0"
@@ -313,12 +317,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
 
-      # S3 configuration (optional)
+      # S3 configuration (optional). Credentials are NOT passed as
+      # environment variables — use the docker-compose.s3.yml overlay
+      # (file-based Docker secret) when enabling S3 upload.
       S3_ENABLED: ${S3_BACKUP_ENABLED:-false}
       S3_BUCKET: ${S3_BACKUP_BUCKET:-}
       S3_PREFIX: ${S3_BACKUP_PREFIX:-backups}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
     volumes:
       - backupdata:/backups
