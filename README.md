@@ -186,21 +186,25 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 overlay 會：
 
+- 建置各服務專用的 `prod` 映像階段（`build.target: prod`）：
+  - **php**：不含 Xdebug、`composer install --no-dev` + optimized/authoritative
+    autoloader、prod `php.ini`（`display_errors=Off`、OPcache），程式碼與 vendor
+    烘入映像；
+  - **administration**：`adapter-static` 建置產物，改由 Caddy 提供靜態檔並就地
+    反代 `/api`、`/ws`、`/sse`、`/chat` 到後端服務（取代 dev 的 Vite proxy），
+    WS 位址於建置時烘為同源 `/ws`；
+- 以 `!override` 標籤移除 dev 的原始碼 bind mount，容器改跑烘好的映像
+  （需 Docker Compose v2.24+；本 repo 開發環境為 v5.x）；
 - 後端切到 `APP_ENV=prod`、`APP_DEBUG=0`、關閉 Xdebug；
-- 管理面板改為建置後的靜態產物（`pnpm build` + `vite preview`），不再跑 dev server；
 - 通知服務進入 `RUN_MODE=production`（強制 `X-API-Key` 與非空 `CORS_ORIGINS`），並開啟佇列／ACK／限流；
 - Redis 開啟 AOF 持久化，並為所有長駐服務補上 `restart: unless-stopped`。
 
-> ⚠️ **已知限制**：base compose 把原始碼以 bind mount 掛入 `php` 與
-> `administration`；compose overlay 無法「移除」base 的掛載（volume 依 target
-> 合併），因此掛載仍在。在正式主機上把本 repo 部署到該路徑即可（映像已烘入
-> 程式碼與相依）。若要做到純映像部署，請把開發用掛載拆到
-> `docker-compose.override.yml`，讓 base 本身即為 prod-safe。
+> 💡 API 文件（`/api/doc`，Nelmio）只在 `dev` 環境註冊；prod 映像以
+> `--no-dev` 建置且不載入該 bundle。
 
 **overlay 尚未涵蓋、需另行處理的強化項**（見 [docs/operations.md](docs/operations.md)）：
-建置專用 prod 映像（`composer install --no-dev --optimize-autoloader`、移除
-Xdebug 擴充、以 Caddy/CDN 前置靜態面板）、輪替 `POSTGRES_PASSWORD` 預設值並
-為 chat 建立獨立 DB 使用者、Redis 加上 `requirepass`、部署監控告警與離機備份。
+以非 root 使用者執行 php 容器、輪替 `POSTGRES_PASSWORD` 預設值並為 chat 建立
+獨立 DB 使用者、Redis 加上 `requirepass`、部署監控告警與離機備份。
 
 ## 服務端點
 

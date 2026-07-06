@@ -1,0 +1,31 @@
+# Production static server for the administration panel.
+# Serves the adapter-static bundle and proxies the same-origin API/WS paths to
+# the backend services (this replaces the Vite dev proxy used in development).
+:3000 {
+	encode zstd gzip
+
+	# Backend REST API
+	handle /api/* {
+		reverse_proxy php:80
+	}
+
+	# Notification service realtime channels (WebSocket + SSE)
+	handle /ws {
+		reverse_proxy notification:8081
+	}
+	handle /sse {
+		reverse_proxy notification:8081
+	}
+
+	# Chat service — strip the /chat prefix (matches the Vite proxy + main Caddy)
+	handle_path /chat/* {
+		reverse_proxy chat:8082
+	}
+
+	# Static SPA: serve files, fall back to index.html for client-side routes
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
