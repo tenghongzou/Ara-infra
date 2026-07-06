@@ -173,6 +173,35 @@ curl http://localhost:8081/health         # Notification（僅回環，需在 ho
 curl -H "X-API-Key: $NOTIFICATION_API_KEY" http://localhost:8081/stats
 ```
 
+## 生產部署
+
+預設的 `docker-compose.yml` 是**開發拓撲**（`APP_ENV=dev`、Xdebug、Vite dev
+server、原始碼掛載）。正式環境請疊加 `docker-compose.prod.yml`：
+
+```bash
+# 除了開發必填的四個密鑰，prod overlay 另外需要 CORS_ORIGINS
+#   CORS_ORIGINS=https://admin.example.com   （通知服務生產模式強制非空）
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+overlay 會：
+
+- 後端切到 `APP_ENV=prod`、`APP_DEBUG=0`、關閉 Xdebug；
+- 管理面板改為建置後的靜態產物（`pnpm build` + `vite preview`），不再跑 dev server；
+- 通知服務進入 `RUN_MODE=production`（強制 `X-API-Key` 與非空 `CORS_ORIGINS`），並開啟佇列／ACK／限流；
+- Redis 開啟 AOF 持久化，並為所有長駐服務補上 `restart: unless-stopped`。
+
+> ⚠️ **已知限制**：base compose 把原始碼以 bind mount 掛入 `php` 與
+> `administration`；compose overlay 無法「移除」base 的掛載（volume 依 target
+> 合併），因此掛載仍在。在正式主機上把本 repo 部署到該路徑即可（映像已烘入
+> 程式碼與相依）。若要做到純映像部署，請把開發用掛載拆到
+> `docker-compose.override.yml`，讓 base 本身即為 prod-safe。
+
+**overlay 尚未涵蓋、需另行處理的強化項**（見 [docs/operations.md](docs/operations.md)）：
+建置專用 prod 映像（`composer install --no-dev --optimize-autoloader`、移除
+Xdebug 擴充、以 Caddy/CDN 前置靜態面板）、輪替 `POSTGRES_PASSWORD` 預設值並
+為 chat 建立獨立 DB 使用者、Redis 加上 `requirepass`、部署監控告警與離機備份。
+
 ## 服務端點
 
 ### Symfony 後端 API
@@ -589,6 +618,7 @@ Ara-infra/
 │   └── redis-channels.md    # Redis Pub/Sub 頻道契約
 ├── scripts/                 # 測試輔助腳本
 ├── docker-compose.yml
+├── docker-compose.prod.yml     # 生產強化 overlay
 ├── docker-compose.cluster.yml  # 聊天叢集測試拓撲
 ├── Makefile
 ├── .env.example

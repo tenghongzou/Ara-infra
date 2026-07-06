@@ -1,0 +1,83 @@
+# Production hardening overlay for Ara-infra.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# What it changes vs. the dev base:
+#   - Symfony runs in prod mode with Xdebug and debug output off.
+#   - The admin panel is served as a built bundle, not the Vite dev server.
+#   - The notification service runs in its enforced production profile
+#     (RUN_MODE=production requires API_KEY >= 16 chars and non-empty
+#     CORS_ORIGINS; both are validated at startup).
+#   - Redis persists with AOF; every long-running service gets a restart policy.
+#
+# KNOWN LIMITATION — bind mounts:
+#   The base compose bind-mounts host source into `php` (./backend) and
+#   `administration` (./administration). A compose overlay CANNOT remove a base
+#   mount (volume lists merge by target), so those mounts stay. On a real host
+#   this is acceptable if you deploy the repository at that path; the images
+#   already bake the code and dependencies. For a stricter image-only deploy,
+#   split the dev mounts into a docker-compose.override.yml so the base is
+#   prod-safe. See README "生產部署".
+#
+# REMAINING HARDENING (out of scope for a runtime overlay — track separately):
+#   - Dedicated prod images: composer install --no-dev --optimize-autoloader,
+#     drop the Xdebug extension, front the admin static bundle with Caddy/CDN.
+#   - Rotate POSTGRES_PASSWORD off the "symfony" default; give chat its own DB user.
+#   - Redis AUTH (requirepass) once every client is wired to send the password.
+#   - Monitoring/alerting (Prometheus + Alertmanager) and off-host backups (S3).
+#
+# Extra .env values this overlay requires (on top of the dev-required secrets):
+#   CORS_ORIGINS=https://admin.example.com     # comma-separated allowed origins
+
+services:
+  php:
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      XDEBUG_MODE: "off"
+    restart: unless-stopped
+
+  scheduler:
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      XDEBUG_MODE: "off"
+    restart: unless-stopped
+
+  async-worker:
+    environment:
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      XDEBUG_MODE: "off"
+    restart: unless-stopped
+
+  administration:
+    environment:
+      NODE_ENV: "production"
+    # Build the static bundle and serve it instead of the Vite dev server.
+    command: ["sh", "-c", "pnpm build && pnpm exec vite preview --host 0.0.0.0 --port 3000"]
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped
+
+  redis:
+    # Enable append-only persistence so cache/queue state survives a restart.
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+
+  notification:
+    environment:
+      # Production profile: enforces X-API-Key on write endpoints and a
+      # non-empty CORS allow-list (both validated at startup).
+      RUN_MODE: "production"
+      CORS_ORIGINS: "${CORS_ORIGINS:?CORS_ORIGINS must be set for the prod overlay — comma-separated allowed origins}"
+      # Durability + abuse protection for a real deployment.
+      QUEUE_ENABLED: "true"
+      ACK_ENABLED: "true"
+      RATELIMIT_ENABLED: "true"
+    restart: unless-stopped
+
+  chat:
+    restart: unless-stopped
