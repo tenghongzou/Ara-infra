@@ -4,40 +4,27 @@
 }
 
 :80 {
-    # Notification service WebSocket/SSE
+    # Notification service client channels: WebSocket + SSE subscriptions,
+    # authenticated per-connection by JWT. These are the only notification
+    # paths that legitimately need to be reachable from outside.
     handle /ws {
         reverse_proxy notification:8081
     }
     handle /sse {
         reverse_proxy notification:8081
     }
-
-    # Notification service endpoints (Rust microservice - only send operations)
-    handle /stats {
-        reverse_proxy notification:8081
-    }
-    handle /metrics {
-        reverse_proxy notification:8081
-    }
     handle /health {
         reverse_proxy notification:8081
     }
-    # Notification send endpoints -> Rust service
-    handle /api/v1/notifications/send {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/send-to-users {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/broadcast {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/channel {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/channels {
-        reverse_proxy notification:8081
-    }
+
+    # NOTE: the notification write endpoints (/api/v1/notifications/send,
+    # /send-to-users, /broadcast, /channel, /channels) and the /stats and
+    # /metrics paths are deliberately NOT proxied here. They are
+    # server-to-server only: the Symfony backend reaches the notification
+    # service directly over the Docker network (http://notification:8081,
+    # with X-API-Key) after enforcing the notifications:manage permission.
+    # Exposing them through Caddy would let external callers bypass that
+    # authorization check and broadcast to any user.
 
     # Chat service (Rust microservice) - strips the /chat prefix so
     # /chat/ws -> chat:8082/ws and /chat/api/v1/... -> chat:8082/api/v1/...
@@ -54,40 +41,27 @@
 }
 
 https://ara.local {
-    # Notification service WebSocket/SSE
+    # Notification service client channels: WebSocket + SSE subscriptions,
+    # authenticated per-connection by JWT. These are the only notification
+    # paths that legitimately need to be reachable from outside.
     handle /ws {
         reverse_proxy notification:8081
     }
     handle /sse {
         reverse_proxy notification:8081
     }
-
-    # Notification service endpoints (Rust microservice - only send operations)
-    handle /stats {
-        reverse_proxy notification:8081
-    }
-    handle /metrics {
-        reverse_proxy notification:8081
-    }
     handle /health {
         reverse_proxy notification:8081
     }
-    # Notification send endpoints -> Rust service
-    handle /api/v1/notifications/send {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/send-to-users {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/broadcast {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/channel {
-        reverse_proxy notification:8081
-    }
-    handle /api/v1/notifications/channels {
-        reverse_proxy notification:8081
-    }
+
+    # NOTE: the notification write endpoints (/api/v1/notifications/send,
+    # /send-to-users, /broadcast, /channel, /channels) and the /stats and
+    # /metrics paths are deliberately NOT proxied here. They are
+    # server-to-server only: the Symfony backend reaches the notification
+    # service directly over the Docker network (http://notification:8081,
+    # with X-API-Key) after enforcing the notifications:manage permission.
+    # Exposing them through Caddy would let external callers bypass that
+    # authorization check and broadcast to any user.
 
     # Chat service (Rust microservice) - strips the /chat prefix so
     # /chat/ws -> chat:8082/ws and /chat/api/v1/... -> chat:8082/api/v1/...

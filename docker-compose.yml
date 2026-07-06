@@ -21,13 +21,21 @@ services:
       APP_DEBUG: ${APP_DEBUG:-1}
       # DATABASE_URL is loaded from env_file (.env → .env.local)
 
+      # Symfony secret — keys 2FA-secret encryption (plaintext fallback if empty)
+      APP_SECRET: "${APP_SECRET:?APP_SECRET must be set — run 'make gen-secret' and put it in .env}"
+
       # JWT Configuration (shared with notification service)
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
+      # Passphrase protecting the RS256 private key (see root .env.example)
+      JWT_PASSPHRASE: "${JWT_PASSPHRASE:?JWT_PASSPHRASE must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Notification service URL for sending notifications
       NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      # Shared secret for server-to-server calls to the notification service
+      # (sent as X-API-Key). Must match the notification service's API_KEY.
+      NOTIFICATION_SERVICE_API_KEY: "${NOTIFICATION_API_KEY:?NOTIFICATION_API_KEY must be set — run 'make gen-secret' and put it in .env}"
       # Chat service URL for messaging
       CHAT_SERVICE_URL: "http://chat:8082"
 
@@ -70,13 +78,18 @@ services:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-0}
 
+      # Symfony secret — keys 2FA-secret encryption (plaintext fallback if empty)
+      APP_SECRET: "${APP_SECRET:?APP_SECRET must be set — run 'make gen-secret' and put it in .env}"
+
       # JWT Configuration
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
+      JWT_PASSPHRASE: "${JWT_PASSPHRASE:?JWT_PASSPHRASE must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Service URLs
       NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      NOTIFICATION_SERVICE_API_KEY: "${NOTIFICATION_API_KEY:?NOTIFICATION_API_KEY must be set — run 'make gen-secret' and put it in .env}"
       CHAT_SERVICE_URL: "http://chat:8082"
 
       # Disable Xdebug for worker
@@ -108,13 +121,18 @@ services:
       APP_ENV: ${APP_ENV:-dev}
       APP_DEBUG: ${APP_DEBUG:-0}
 
+      # Symfony secret — keys 2FA-secret encryption (plaintext fallback if empty)
+      APP_SECRET: "${APP_SECRET:?APP_SECRET must be set — run 'make gen-secret' and put it in .env}"
+
       # JWT Configuration
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET must be set — run 'make gen-secret' and put it in .env}"
+      JWT_PASSPHRASE: "${JWT_PASSPHRASE:?JWT_PASSPHRASE must be set — run 'make gen-secret' and put it in .env}"
       JWT_ISSUER: "${JWT_ISSUER:-ara-platform}"
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
 
       # Service URLs
       NOTIFICATION_SERVICE_URL: "http://notification:8081"
+      NOTIFICATION_SERVICE_API_KEY: "${NOTIFICATION_API_KEY:?NOTIFICATION_API_KEY must be set — run 'make gen-secret' and put it in .env}"
       CHAT_SERVICE_URL: "http://chat:8082"
 
       # Disable Xdebug for worker
@@ -208,6 +226,12 @@ services:
       JWT_AUDIENCE: "${JWT_AUDIENCE:-ara-services}"
       JWT_ALGORITHM: "RS256"
       JWT_PUBLICKEY: "/app/config/jwt/public.pem"
+
+      # API key for the write/admin HTTP endpoints (send, broadcast, channel,
+      # stats, metrics). Once set, the service enforces X-API-Key on those
+      # routes; the Symfony backend is the only caller and sends this value.
+      # Required so the endpoints are never left open (fail-closed).
+      API_KEY: "${NOTIFICATION_API_KEY:?NOTIFICATION_API_KEY must be set — run 'make gen-secret' and put it in .env}"
 
       # Redis
       REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
