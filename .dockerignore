@@ -8,3 +8,10 @@ administration/build
 administration/.svelte-kit
 administration/.vercel
 administration/.netlify
+
+# The prod PHP stage installs vendor/ with --no-dev, then `COPY backend/ .`
+# would paste the host's dev-installed vendor (phpunit et al.) back over it —
+# defeating --no-dev and inflating the image. var/ is dev cache + logs and is
+# rebuilt by the entrypoint's cache:clear anyway.
+backend/vendor
+backend/var
